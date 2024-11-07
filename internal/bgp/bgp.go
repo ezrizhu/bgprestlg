@@ -3,6 +3,7 @@ package bgp
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/ezrizhu/bgprestlg/internal/config"
 	api "github.com/osrg/gobgp/v3/api"
@@ -14,6 +15,7 @@ import (
 
 var ctx = context.Background()
 var s *server.BgpServer
+var peer *api.Peer
 
 func SrvInit() {
 	s = server.NewBgpServer(server.LoggerOption(&myLogger{logger: &log.Logger}))
@@ -39,7 +41,11 @@ func SrvInit() {
 	}); err != nil {
 		log.Fatal().Err(err).Msg("Failed to install watchEvent hook")
 	}
-	n := &api.Peer{
+	peer := &api.Peer{
+		EbgpMultihop: &api.EbgpMultihop{
+			Enabled:     true,
+			MultihopTtl: uint32(16),
+		},
 		Conf: &api.PeerConf{
 			NeighborAddress: config.Config.Peer.Address,
 			PeerAsn:         uint32(config.Config.Peer.Port),
@@ -47,11 +53,64 @@ func SrvInit() {
 	}
 
 	if err := s.AddPeer(ctx, &api.AddPeerRequest{
-		Peer: n,
+		Peer: peer,
 	}); err != nil {
 		log.Error().Err(err).Msg("AddPeer")
 		return
 	}
+}
+
+func SessionStateToString(state api.PeerState_SessionState) string {
+	switch state {
+	case api.PeerState_UNKNOWN:
+		return "UNKNOWN"
+	case api.PeerState_IDLE:
+		return "IDLE"
+	case api.PeerState_CONNECT:
+		return "CONNECT"
+	case api.PeerState_ACTIVE:
+		return "ACTIVE"
+	case api.PeerState_OPENSENT:
+		return "OPENSENT"
+	case api.PeerState_OPENCONFIRM:
+		return "OPENCONFIRM"
+	case api.PeerState_ESTABLISHED:
+		return "ESTABLISHED"
+	default:
+		return "INVALID"
+	}
+}
+
+func msgToString(m *api.Message) string {
+	return fmt.Sprintf(
+		"Notification: %d\n"+
+			"Update: %d\n"+
+			"Open: %d\n"+
+			"Keepalive: %d\n"+
+			"Refresh: %d\n"+
+			"Discarded: %d\n"+
+			"Total: %d\n"+
+			"WithdrawUpdate: %d\n"+
+			"WithdrawPrefix: %d",
+		m.Notification,
+		m.Update,
+		m.Open,
+		m.Keepalive,
+		m.Refresh,
+		m.Discarded,
+		m.Total,
+		m.WithdrawUpdate,
+		m.WithdrawPrefix,
+	)
+}
+
+func PeerState() string {
+	state := peer.State
+	stateStr := SessionStateToString(state.SessionState)
+	flopsStr := strconv.Itoa(int(state.Flops))
+	recvStr := msgToString(state.Messages.Received)
+	sentStr := msgToString(state.Messages.Sent)
+	return stateStr + flopsStr + recvStr + sentStr
 }
 
 func SrvStop(ctx context.Context) error {
