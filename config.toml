@@ -4,7 +4,10 @@ port = 3000
 behind_proxy = false
 
 [bgp]
-hostname = "rc0dev"
+router_id = "198.8.59.40"
+address = "localhost"
+port = 179
+asn = 206628
 
 [peer]
 address = "localhost"

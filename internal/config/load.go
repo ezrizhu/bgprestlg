@@ -12,13 +12,16 @@ var (
 
 	Config struct {
 		API struct {
-			Host        string `koanf:"host"`
+			Address     string `koanf:"address"`
 			Port        int    `koanf:"port"`
 			BehindProxy bool   `koanf:"behind_proxy"`
 		} `koanf:"api"`
 
 		BGP struct {
-			Host string `koanf:"host"`
+			RouterID string `koanf:"router_id"`
+			Address  string `koanf:"address"`
+			Port     int    `koanf:"port"`
+			ASN      int    `koanf:"asn"`
 		} `koanf:"bgp"`
 
 		Peer struct {
