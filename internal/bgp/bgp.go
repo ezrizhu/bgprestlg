@@ -44,11 +44,11 @@ func SrvInit() {
 	peer := &api.Peer{
 		EbgpMultihop: &api.EbgpMultihop{
 			Enabled:     true,
-			MultihopTtl: uint32(16),
+			MultihopTtl: uint32(255),
 		},
 		Conf: &api.PeerConf{
 			NeighborAddress: config.Config.Peer.Address,
-			PeerAsn:         uint32(config.Config.Peer.Port),
+			PeerAsn:         uint32(config.Config.Peer.ASN),
 		},
 	}
 
