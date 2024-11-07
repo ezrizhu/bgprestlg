@@ -7,7 +7,7 @@ behind_proxy = false
 router_id = "198.8.59.40"
 address = "0.0.0.0"
 port = 179
-asn = 206628
+asn = 21991
 
 [peer]
 address = "212.114.120.72"
