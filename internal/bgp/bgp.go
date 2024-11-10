@@ -110,12 +110,12 @@ func PeerState() string {
 	recvStr := "Recv: "
 	sentStr := "sent: "
 	if peer == nil {
-		return "peer offline"
+		return "peer not initialized"
 	}
-	if peer.State == nil {
+	state := peer.GetState()
+	if state == nil {
 		return "peer state doesnt exist"
 	}
-	state := peer.State
 	stateStr += SessionStateToString(state.SessionState)
 	flopsStr += strconv.Itoa(int(state.Flops))
 	if state.Messages != nil {
