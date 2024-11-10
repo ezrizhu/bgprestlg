@@ -41,7 +41,7 @@ func SrvInit() {
 	}); err != nil {
 		log.Fatal().Err(err).Msg("Failed to install watchEvent hook")
 	}
-	peer := &api.Peer{
+	peer = &api.Peer{
 		EbgpMultihop: &api.EbgpMultihop{
 			Enabled:     true,
 			MultihopTtl: uint32(255),
