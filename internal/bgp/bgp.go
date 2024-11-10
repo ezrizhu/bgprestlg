@@ -109,17 +109,21 @@ func PeerState() string {
 	flopsStr := "Flops: "
 	recvStr := "Recv: "
 	sentStr := "sent: "
-	if peer.State != nil {
-		state := peer.State
-		stateStr += SessionStateToString(state.SessionState)
-		flopsStr += strconv.Itoa(int(state.Flops))
-		if state.Messages != nil {
-			if state.Messages.Received != nil {
-				recvStr += msgToString(state.Messages.Received)
-			}
-			if state.Messages.Sent != nil {
-				sentStr += msgToString(state.Messages.Sent)
-			}
+	if peer == nil {
+		return "peer offline"
+	}
+	if peer.State == nil {
+		return "peer state doesnt exist"
+	}
+	state := peer.State
+	stateStr += SessionStateToString(state.SessionState)
+	flopsStr += strconv.Itoa(int(state.Flops))
+	if state.Messages != nil {
+		if state.Messages.Received != nil {
+			recvStr += msgToString(state.Messages.Received)
+		}
+		if state.Messages.Sent != nil {
+			sentStr += msgToString(state.Messages.Sent)
 		}
 	}
 	return stateStr + "\n" + flopsStr + "\n" + recvStr + "\n" + sentStr
