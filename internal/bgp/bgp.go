@@ -112,6 +112,11 @@ func PeerState() string {
 	if peer == nil {
 		return "peer not initialized"
 	}
+	if _, err := s.UpdatePeer(ctx, &api.UpdatePeerRequest{
+		Peer: peer,
+	}); err != nil {
+		return "update peer failed"
+	}
 	state := peer.GetState()
 	if state == nil {
 		return "peer state doesnt exist"
