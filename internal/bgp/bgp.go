@@ -134,6 +134,19 @@ func PeerState() string {
 	return stateStr + "\n" + flopsStr + "\n" + recvStr + "\n" + sentStr
 }
 
+func Route(prefix string) string {
+	v6Family := &api.Family{
+		Afi:  api.Family_AFI_IP6,
+		Safi: api.Family_SAFI_UNICAST,
+	}
+
+	resp := ""
+	s.ListPath(context.Background(), &api.ListPathRequest{Family: v6Family}, func(p *api.Destination) {
+		resp += p.Prefix
+	})
+	return resp
+}
+
 func SrvStop(ctx context.Context) error {
 	if err := s.ShutdownPeer(ctx, &api.ShutdownPeerRequest{
 		Address: config.Config.Peer.Address,

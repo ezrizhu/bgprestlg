@@ -36,7 +36,8 @@ func Handler() *chi.Mux {
 	r.Use(cm.Heartbeat("/"))
 	r.Use(em.Recoverer)
 
-	r.Get("/{route}", routes.GetRoute)
+	r.Get("/status", routes.GetStatus)
+	r.Get("/route/{prefix}", routes.GetRoute)
 
 	return r
 }
