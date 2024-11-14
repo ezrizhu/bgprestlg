@@ -135,7 +135,7 @@ func PeerState() string {
 	return stateStr + "\n" + flopsStr + "\n" + recvStr + "\n" + sentStr
 }
 
-func Route(prefix string) string {
+func Route(prefix string, prefixLen string) string {
 	v6Family := &api.Family{
 		Afi:  api.Family_AFI_IP6,
 		Safi: api.Family_SAFI_UNICAST,
@@ -145,7 +145,11 @@ func Route(prefix string) string {
 		Safi: api.Family_SAFI_UNICAST,
 	}
 
-	log.Info().Str("prefix", prefix).Msg("Looking up")
+	log.Info().
+		Str("prefix", prefix).
+		Str("len", prefixLen).
+		Msg("Looking up")
+
 	resp := ""
 	if strings.Contains(prefix, ":") {
 		// ipv6
@@ -153,7 +157,7 @@ func Route(prefix string) string {
 			Family: v6Family,
 			Prefixes: []*api.TableLookupPrefix{
 				{
-					Prefix: prefix,
+					Prefix: prefix + prefixLen,
 					Type:   api.TableLookupPrefix_EXACT,
 				},
 			},
@@ -165,7 +169,7 @@ func Route(prefix string) string {
 			Family: v4Family,
 			Prefixes: []*api.TableLookupPrefix{
 				{
-					Prefix: prefix,
+					Prefix: prefix + prefixLen,
 					Type:   api.TableLookupPrefix_EXACT,
 				},
 			},

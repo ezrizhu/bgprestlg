@@ -15,7 +15,9 @@ func GetStatus(w http.ResponseWriter, r *http.Request) {
 
 func GetRoute(w http.ResponseWriter, r *http.Request) {
 	prefix := chi.URLParam(r, "prefix")
+	prefixLen := r.URL.Query().Get("len")
+
 	log.Debug().Msg("getting prefix" + prefix)
-	bgpRoute := bgp.Route(prefix)
+	bgpRoute := bgp.Route(prefix, prefixLen)
 	w.Write([]byte(bgpRoute))
 }
