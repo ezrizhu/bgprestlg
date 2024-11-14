@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/ezrizhu/bgprestlg/internal/config"
 	api "github.com/osrg/gobgp/v3/api"
@@ -139,11 +140,39 @@ func Route(prefix string) string {
 		Afi:  api.Family_AFI_IP6,
 		Safi: api.Family_SAFI_UNICAST,
 	}
+	v4Family := &api.Family{
+		Afi:  api.Family_AFI_IP,
+		Safi: api.Family_SAFI_UNICAST,
+	}
 
+	log.Info().Str("prefix", prefix).Msg("Looking up")
 	resp := ""
-	s.ListPath(context.Background(), &api.ListPathRequest{Family: v6Family}, func(p *api.Destination) {
-		resp += p.Prefix
-	})
+	if strings.Contains(prefix, ":") {
+		// ipv6
+		s.ListPath(context.Background(), &api.ListPathRequest{
+			Family: v6Family,
+			Prefixes: []*api.TableLookupPrefix{
+				{
+					Prefix: prefix,
+					Type:   api.TableLookupPrefix_EXACT,
+				},
+			},
+		}, func(p *api.Destination) {
+			resp += p.Prefix
+		})
+	} else {
+		s.ListPath(context.Background(), &api.ListPathRequest{
+			Family: v4Family,
+			Prefixes: []*api.TableLookupPrefix{
+				{
+					Prefix: prefix,
+					Type:   api.TableLookupPrefix_EXACT,
+				},
+			},
+		}, func(p *api.Destination) {
+			resp += p.Prefix
+		})
+	}
 	return resp
 }
 

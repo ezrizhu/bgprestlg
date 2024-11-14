@@ -4,6 +4,7 @@ import (
 	"time"
 
 	em "github.com/BasedDevelopment/eve/pkg/middleware"
+	"github.com/ezrizhu/bgprestlg/internal/config"
 	"github.com/ezrizhu/bgprestlg/internal/server/routes"
 	"github.com/go-chi/chi/v5"
 	cm "github.com/go-chi/chi/v5/middleware"
@@ -14,10 +15,10 @@ import (
 func Handler() *chi.Mux {
 	r := chi.NewMux()
 
-	// Middlewares
-	//if config.Config.API.BehindProxy {
-	//	r.Use(cm.RealIP)
-	//}
+	//Middlewares
+	if config.Config.API.BehindProxy {
+		r.Use(cm.RealIP)
+	}
 	r.Use(cm.RequestID)
 	r.Use(em.Logger)
 	r.Use(cm.GetHead)
