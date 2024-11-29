@@ -113,6 +113,7 @@ func PeerState() string {
 	if peer == nil {
 		return "peer not initialized"
 	}
+
 	if resp, err := s.UpdatePeer(ctx, &api.UpdatePeerRequest{
 		Peer: peer,
 	}); err != nil {
@@ -125,6 +126,7 @@ func PeerState() string {
 	if state == nil {
 		return "peer state doesnt exist"
 	}
+
 	stateStr += SessionStateToString(state.SessionState)
 	flopsStr += strconv.Itoa(int(state.Flops))
 	if state.Messages != nil {
@@ -153,34 +155,72 @@ func Route(prefix string, prefixLen string) string {
 		Str("len", prefixLen).
 		Msg("Looking up")
 
-	resp := ""
+	var resp strings.Builder
+	var family *api.Family
 	if strings.Contains(prefix, ":") {
-		// ipv6
-		s.ListPath(context.Background(), &api.ListPathRequest{
-			Family: v6Family,
-			Prefixes: []*api.TableLookupPrefix{
-				{
-					Prefix: prefix + prefixLen,
-					Type:   api.TableLookupPrefix_EXACT,
-				},
-			},
-		}, func(p *api.Destination) {
-			resp += p.Prefix
-		})
+		family = v6Family
 	} else {
-		s.ListPath(context.Background(), &api.ListPathRequest{
-			Family: v4Family,
-			Prefixes: []*api.TableLookupPrefix{
-				{
-					Prefix: prefix + prefixLen,
-					Type:   api.TableLookupPrefix_EXACT,
-				},
-			},
-		}, func(p *api.Destination) {
-			resp += p.Prefix
-		})
+		family = v4Family
 	}
-	return resp
+
+	req := &api.ListPathRequest{
+		Family: family,
+		Prefixes: []*api.TableLookupPrefix{
+			{
+				Prefix: prefix + "/" + prefixLen,
+				Type:   api.TableLookupPrefix_EXACT,
+			},
+		},
+	}
+
+	err := s.ListPath(context.Background(), req, func(d *api.Destination) {
+		resp.WriteString(fmt.Sprintf("Prefix: %s\n", d.Prefix))
+		for _, p := range d.Paths {
+			// Get next hop from path attributes
+			var nextHop string
+			var asPath []uint32
+			for _, attr := range p.GetPattrs() {
+				// Try to unmarshal as NextHopAttribute
+				if attr.TypeUrl == "type.googleapis.com/gobgp.v3.NextHopAttribute" {
+					var nhAttr api.NextHopAttribute
+					if err := attr.UnmarshalTo(&nhAttr); err == nil {
+						nextHop = nhAttr.NextHop
+					}
+				}
+				// Try to unmarshal as AsPathAttribute
+				if attr.TypeUrl == "type.googleapis.com/gobgp.v3.AsPathAttribute" {
+					var asPathAttr api.AsPathAttribute
+					if err := attr.UnmarshalTo(&asPathAttr); err == nil {
+						for _, segment := range asPathAttr.Segments {
+							asPath = append(asPath, segment.Numbers...)
+						}
+					}
+				}
+			}
+
+			resp.WriteString(fmt.Sprintf("  Path:\n"))
+			resp.WriteString(fmt.Sprintf("    Source ASN: %d\n", p.SourceAsn))
+			resp.WriteString(fmt.Sprintf("    Next Hop: %s\n", nextHop))
+			resp.WriteString(fmt.Sprintf("    AS Path: %v\n", asPath))
+			if p.Best {
+				resp.WriteString("    Best: true\n")
+			}
+			if p.IsWithdraw {
+				resp.WriteString("    Withdrawn: true\n")
+			}
+		}
+		resp.WriteString("\n")
+	})
+
+	if err != nil {
+		return fmt.Sprintf("Error looking up route: %v", err)
+	}
+
+	if resp.Len() == 0 {
+		return "No matching routes found"
+	}
+
+	return resp.String()
 }
 
 func SrvStop(ctx context.Context) error {
