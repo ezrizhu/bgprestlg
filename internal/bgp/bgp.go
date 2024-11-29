@@ -55,6 +55,22 @@ func SrvInit() {
 			NeighborAddress: config.Config.Peer.Address,
 			PeerAsn:         uint32(config.Config.Peer.ASN),
 		},
+		AfiSafis: []*api.AfiSafi{
+			&api.AfiSafi{
+				Config: &api.AfiSafiConfig{
+					Family: &api.Family{
+						Afi:  api.Family_AFI_IP,
+						Safi: api.Family_SAFI_UNICAST,
+					},
+					Enabled: true,
+				},
+				AddPaths: &api.AddPaths{
+					Config: &api.AddPathsConfig{
+						Receive: true,
+					},
+				},
+			},
+		},
 	}
 
 	if err := s.AddPeer(ctx, &api.AddPeerRequest{
