@@ -196,8 +196,8 @@ func Route(prefix string, prefixLen string) string {
 	err := s.ListPath(context.Background(), req, func(d *api.Destination) {
 		for _, p := range d.Paths {
 			resp += p.String()
+			resp += "\n"
 		}
-		resp += "\n"
 	})
 
 	if err != nil {
