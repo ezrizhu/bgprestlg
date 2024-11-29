@@ -113,10 +113,13 @@ func PeerState() string {
 	if peer == nil {
 		return "peer not initialized"
 	}
-	if _, err := s.UpdatePeer(ctx, &api.UpdatePeerRequest{
+	if resp, err := s.UpdatePeer(ctx, &api.UpdatePeerRequest{
 		Peer: peer,
 	}); err != nil {
 		return "update peer failed"
+	} else {
+		// this is debug
+		fmt.Println("need soft reset", resp.NeedsSoftResetIn)
 	}
 	state := peer.GetState()
 	if state == nil {
