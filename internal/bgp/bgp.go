@@ -24,10 +24,11 @@ func SrvInit() {
 
 	if err := s.StartBgp(ctx, &api.StartBgpRequest{
 		Global: &api.Global{
-			Asn:             uint32(config.Config.BGP.ASN),
-			RouterId:        config.Config.BGP.RouterID,
-			ListenPort:      int32(config.Config.BGP.Port),
-			ListenAddresses: []string{config.Config.BGP.Address},
+			Asn:              uint32(config.Config.BGP.ASN),
+			RouterId:         config.Config.BGP.RouterID,
+			ListenPort:       int32(config.Config.BGP.Port),
+			ListenAddresses:  []string{config.Config.BGP.Address},
+			UseMultiplePaths: true,
 		},
 	}); err != nil {
 		log.Fatal().Err(err).Msg("Failed to start BGP server")
@@ -155,7 +156,7 @@ func Route(prefix string, prefixLen string) string {
 		Str("len", prefixLen).
 		Msg("Looking up")
 
-	var resp strings.Builder
+	resp := ""
 	var family *api.Family
 	if strings.Contains(prefix, ":") {
 		family = v6Family
@@ -174,53 +175,17 @@ func Route(prefix string, prefixLen string) string {
 	}
 
 	err := s.ListPath(context.Background(), req, func(d *api.Destination) {
-		resp.WriteString(fmt.Sprintf("Prefix: %s\n", d.Prefix))
 		for _, p := range d.Paths {
-			// Get next hop from path attributes
-			var nextHop string
-			var asPath []uint32
-			for _, attr := range p.GetPattrs() {
-				// Try to unmarshal as NextHopAttribute
-				if attr.TypeUrl == "type.googleapis.com/gobgp.v3.NextHopAttribute" {
-					var nhAttr api.NextHopAttribute
-					if err := attr.UnmarshalTo(&nhAttr); err == nil {
-						nextHop = nhAttr.NextHop
-					}
-				}
-				// Try to unmarshal as AsPathAttribute
-				if attr.TypeUrl == "type.googleapis.com/gobgp.v3.AsPathAttribute" {
-					var asPathAttr api.AsPathAttribute
-					if err := attr.UnmarshalTo(&asPathAttr); err == nil {
-						for _, segment := range asPathAttr.Segments {
-							asPath = append(asPath, segment.Numbers...)
-						}
-					}
-				}
-			}
-
-			resp.WriteString(fmt.Sprintf("  Path:\n"))
-			resp.WriteString(fmt.Sprintf("    Source ASN: %d\n", p.SourceAsn))
-			resp.WriteString(fmt.Sprintf("    Next Hop: %s\n", nextHop))
-			resp.WriteString(fmt.Sprintf("    AS Path: %v\n", asPath))
-			if p.Best {
-				resp.WriteString("    Best: true\n")
-			}
-			if p.IsWithdraw {
-				resp.WriteString("    Withdrawn: true\n")
-			}
+			resp += p.String()
 		}
-		resp.WriteString("\n")
+		resp += "\n"
 	})
 
 	if err != nil {
 		return fmt.Sprintf("Error looking up route: %v", err)
 	}
 
-	if resp.Len() == 0 {
-		return "No matching routes found"
-	}
-
-	return resp.String()
+	return resp
 }
 
 func SrvStop(ctx context.Context) error {
