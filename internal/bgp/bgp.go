@@ -35,7 +35,7 @@ func SrvInit() {
 
 	if err := s.WatchEvent(ctx, &api.WatchEventRequest{Peer: &api.WatchEventRequest_Peer{}}, func(r *api.WatchEventResponse) {
 		if p := r.GetPeer(); p != nil && p.Type == api.WatchEventResponse_PeerEvent_STATE {
-			log.Debug().
+			log.Info().
 				Str("src", "gobgp.peer").
 				Msg(p.String())
 		}
