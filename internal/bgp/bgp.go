@@ -29,6 +29,9 @@ func SrvInit() {
 			ListenPort:       int32(config.Config.BGP.Port),
 			ListenAddresses:  []string{config.Config.BGP.Address},
 			UseMultiplePaths: true,
+			RouteSelectionOptions: &api.RouteSelectionOptionsConfig{
+				DisableBestPathSelection: true,
+			},
 		},
 	}); err != nil {
 		log.Fatal().Err(err).Msg("Failed to start BGP server")
