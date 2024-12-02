@@ -29,6 +29,10 @@ var (
 			Port    int    `koanf:"port"`
 			ASN     int    `koanf:"asn"`
 		} `koanf:"peer"`
+
+		Filter struct {
+			PrefixList []string `koanf:"prefix_list"`
+		} `koanf:"filter"`
 	}
 )
 

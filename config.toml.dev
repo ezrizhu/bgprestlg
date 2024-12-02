@@ -5,14 +5,14 @@ behind_proxy = false
 
 [bgp]
 router_id = "198.8.59.40"
-address = "0.0.0.0"
+address = "10.111.0.1"
 port = 179
-asn = 21991
+asn = 206628
 
 [peer]
-address = "212.114.120.72"
+address = "10.111.0.2"
 port = 179
-asn = 199036
+asn = 47065
 
 [filter]
 prefix_list = [

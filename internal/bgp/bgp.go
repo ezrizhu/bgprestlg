@@ -18,6 +18,8 @@ var ctx = context.Background()
 var s *server.BgpServer
 var peer *api.Peer
 
+var filter = config.Config.Filter.PrefixList
+
 func SrvInit() {
 	s = server.NewBgpServer(server.LoggerOption(&myLogger{logger: &log.Logger}))
 	go s.Serve()
@@ -46,6 +48,9 @@ func SrvInit() {
 	}); err != nil {
 		log.Fatal().Err(err).Msg("Failed to install watchEvent hook")
 	}
+
+	buildPolicyAssignment()
+
 	peer = &api.Peer{
 		EbgpMultihop: &api.EbgpMultihop{
 			Enabled:     true,
@@ -214,6 +219,89 @@ func SrvStop(ctx context.Context) error {
 		log.Error().Err(err).Msg("ShutdownPeer")
 	}
 	return s.StopBgp(ctx, &api.StopBgpRequest{})
+}
+
+func buildPolicyAssignment() *api.PolicyAssignment {
+	prefixSet := []*api.Prefix{}
+
+	for _, i := range filter {
+		split := strings.Split(i, "/")
+		//TODO
+		prefixLen, _ := strconv.Atoi(split[1])
+		prefix := &api.Prefix{
+			IpPrefix:      i, //this takes a CIDR
+			MaskLengthMin: uint32(prefixLen),
+			MaskLengthMax: uint32(prefixLen),
+		}
+		prefixSet = append(prefixSet, prefix)
+	}
+
+	definedSet := &api.DefinedSet{
+		DefinedType: api.DefinedType_PREFIX,
+		Name:        "filterSet",
+		Prefixes:    prefixSet,
+	}
+
+	if err := s.AddDefinedSet(ctx, &api.AddDefinedSetRequest{
+		DefinedSet: definedSet,
+		Replace:    true,
+	}); err != nil {
+		panic(err)
+	}
+
+	conditions := &api.Conditions{
+		PrefixSet: &api.MatchSet{
+			Type: api.MatchSet_ANY,
+			Name: "filterSet",
+		},
+	}
+
+	statement := &api.Statement{
+		Name:       "acceptList",
+		Conditions: conditions,
+		Actions: &api.Actions{
+			RouteAction: api.RouteAction_ACCEPT,
+		},
+	}
+
+	statement2 := &api.Statement{
+		Name: "rejectNonMatching",
+		Conditions: &api.Conditions{
+			PrefixSet: &api.MatchSet{
+				Type: api.MatchSet_INVERT, // Inverts the match
+				Name: "filterSet",
+			},
+		},
+		Actions: &api.Actions{
+			RouteAction: api.RouteAction_REJECT,
+		},
+	}
+
+	policy := &api.Policy{
+		Name:       "acceptList",
+		Statements: []*api.Statement{statement, statement2},
+	}
+
+	if err := s.AddPolicy(ctx, &api.AddPolicyRequest{
+		Policy: policy,
+	}); err != nil {
+		panic(err)
+	}
+
+	policyAssignment := &api.PolicyAssignment{
+		Name:          "global",
+		Direction:     api.PolicyDirection_IMPORT,
+		Policies:      []*api.Policy{policy},
+		DefaultAction: api.RouteAction_REJECT,
+	}
+
+	if err := s.AddPolicyAssignment(ctx, &api.AddPolicyAssignmentRequest{
+		Assignment: policyAssignment,
+	}); err != nil {
+		panic(err)
+	}
+
+	return policyAssignment
 }
 
 type myLogger struct {
