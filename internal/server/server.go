@@ -3,6 +3,8 @@ package server
 import (
 	"time"
 
+	"net/http/pprof"
+
 	em "github.com/BasedDevelopment/eve/pkg/middleware"
 	"github.com/ezrizhu/bgprestlg/internal/config"
 	"github.com/ezrizhu/bgprestlg/internal/server/routes"
@@ -39,6 +41,15 @@ func Handler() *chi.Mux {
 
 	r.Get("/status", routes.GetStatus)
 	r.Get("/route/{prefix}", routes.GetRoute)
+	r.Get("/debug/pprof", pprof.Index)
+	r.Get("/debug/pprof/", pprof.Index)
+	r.Get("/debug/pprof/cmdline", pprof.Cmdline)
+	r.Get("/debug/pprof/profile", pprof.Profile)
+	r.Get("/debug/pprof/symbol", pprof.Symbol)
+	r.Handle("/debug/pprof/goroutine", pprof.Handler("goroutine"))
+	r.Handle("/debug/pprof/heap", pprof.Handler("heap"))
+	r.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
+	r.Handle("/debug/pprof/block", pprof.Handler("block"))
 
 	return r
 }
