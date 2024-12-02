@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"strconv"
 	"syscall"
 	"time"
@@ -19,7 +20,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var debug bool
+var debugLog bool
 var jsonLog bool
 var logFormat string
 var logLevel string
@@ -33,7 +34,7 @@ const (
 func init() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
-	flag.BoolVar(&debug, "debug", false, "debug")
+	flag.BoolVar(&debugLog, "debug", false, "debug")
 	flag.BoolVar(&jsonLog, "json", false, "json logging")
 	flag.StringVar(&configPath, "config", "config.toml", "config file")
 	flag.StringVar(&logLevel, "log-level", "debug", "Log level (trace, debug, info, warn, error, fatal, panic)")
@@ -48,7 +49,7 @@ func main() {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
 	}
 
-	if debug {
+	if debugLog {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 		log.Debug().Msg("Debug log enabled")
 	} else {
@@ -84,6 +85,8 @@ func main() {
 	log.Info().
 		Msg("Started BGP server and Webserver")
 
+	go startMemoryCleanup()
+
 	<-done
 	log.Info().Msg("Stopping")
 	shutdownCtx, shutdownRelease := context.WithTimeout(context.Background(), 10*time.Second)
@@ -96,4 +99,13 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to gracefully stop http server")
 	}
 	log.Info().Msg("Graceful Shutdown Successful, bye")
+}
+
+func startMemoryCleanup() {
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		debug.FreeOSMemory()
+	}
 }
