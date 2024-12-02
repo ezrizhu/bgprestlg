@@ -18,7 +18,7 @@ var ctx = context.Background()
 var s *server.BgpServer
 var peer *api.Peer
 
-var filter = config.Config.Filter.PrefixList
+var filter = &config.Config.Filter.PrefixList
 
 func SrvInit() {
 	s = server.NewBgpServer(server.LoggerOption(&myLogger{logger: &log.Logger}))
@@ -222,7 +222,7 @@ func SrvStop(ctx context.Context) error {
 func addPolicyAssignment() {
 	prefixSet := []*api.Prefix{}
 
-	for _, i := range filter {
+	for _, i := range *filter {
 		split := strings.Split(i, "/")
 		//TODO
 		prefixLen, _ := strconv.Atoi(split[1])
