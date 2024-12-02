@@ -49,7 +49,7 @@ func SrvInit() {
 		log.Fatal().Err(err).Msg("Failed to install watchEvent hook")
 	}
 
-	buildPolicyAssignment()
+	addPolicyAssignment()
 
 	peer = &api.Peer{
 		EbgpMultihop: &api.EbgpMultihop{
@@ -139,27 +139,25 @@ func PeerState() string {
 		return "peer not initialized"
 	}
 
-	if resp, err := s.UpdatePeer(ctx, &api.UpdatePeerRequest{
-		Peer: peer,
-	}); err != nil {
-		return "update peer failed"
-	} else {
-		// this is debug
-		fmt.Println("need soft reset", resp.NeedsSoftResetIn)
-	}
-	state := peer.GetState()
+	req := &api.ListPeerRequest{EnableAdvertised: true}
+	state := &api.PeerState{}
+	s.ListPeer(ctx, req, func(p *api.Peer) {
+		state = p.GetState()
+	})
+	msg := state.GetMessages()
+
 	if state == nil {
 		return "peer state doesnt exist"
 	}
 
 	stateStr += SessionStateToString(state.SessionState)
 	flopsStr += strconv.Itoa(int(state.Flops))
-	if state.Messages != nil {
-		if state.Messages.Received != nil {
-			recvStr += msgToString(state.Messages.Received)
+	if msg != nil {
+		if msg.Received != nil {
+			recvStr += msgToString(msg.Received)
 		}
-		if state.Messages.Sent != nil {
-			sentStr += msgToString(state.Messages.Sent)
+		if msg.Sent != nil {
+			sentStr += msgToString(msg.Sent)
 		}
 	}
 	return stateStr + "\n" + flopsStr + "\n" + recvStr + "\n" + sentStr
@@ -221,7 +219,7 @@ func SrvStop(ctx context.Context) error {
 	return s.StopBgp(ctx, &api.StopBgpRequest{})
 }
 
-func buildPolicyAssignment() *api.PolicyAssignment {
+func addPolicyAssignment() {
 	prefixSet := []*api.Prefix{}
 
 	for _, i := range filter {
@@ -300,8 +298,6 @@ func buildPolicyAssignment() *api.PolicyAssignment {
 	}); err != nil {
 		panic(err)
 	}
-
-	return policyAssignment
 }
 
 type myLogger struct {
